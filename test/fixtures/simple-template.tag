@@ -1,3 +1,3 @@
 <template>
-  { message }
+  <p>{ message }</p>
 </template>

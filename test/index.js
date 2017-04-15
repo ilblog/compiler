@@ -16,7 +16,6 @@ describe('Riot compiler', () => {
   describe('Simple tags', () => {
     it('It can compile a simple template properly', () => {
       const tagName = 'simple-template'
-      console.log(compile(tagName, getFixture(tagName)))
       return compile(tagName, getFixture(tagName)).then(res => {
         expect(res.code).to.be.equal(getExpected(tagName))
       })

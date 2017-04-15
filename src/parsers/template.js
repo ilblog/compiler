@@ -1,4 +1,5 @@
 import { each, conditional } from './flow-expressions'
+import TemplateParser from '../grammar'
 /**
  * HTML_TAGS matches opening and self-closing tags, not the content.
  * Used by {@link module:compiler~_compileHTML|_compileHTML} after hidding
@@ -17,19 +18,23 @@ export const HTML_TAGS = /<(-?[A-Za-z][-\w\xA0-\xFF]*)(?:\s+([^"'\/>]*(?:(?:"[^"
  */
 export const VOID_TAGS = /^(?:input|img|br|wbr|hr|area|base|col|embed|keygen|link|meta|param|source|track)$/
 // match all the "{" and "\{" and "${" to replace eventually with "${"
-export const TMPL_EXPR = /(({|[\\|$]{))(?!#)/
+export const TMPL_EXPR = /(?:({|[\\|$]{)(?:!)?)(?!#)(.+)}/
 // match all the {#whathever } expressions
-export const START_FLOW_EXPR = /{#(\w+(?:\sif)?)(?:\s)?(.+)?}/
+export const START_FLOW_EXPR = /{#(\w+(?:\sif)?)(?:\s)?(.+)?}/i
 // match all the {/whathever } expressions
-export const END_FLOW_EXPR = /{\/(?:\s+)?(\w+)(?:\s+)?}/
+export const END_FLOW_EXPR = /{\/(?:\s+)?(\w+)(?:\s+)?}/i
+// detect the variable names in the expressions
+export const VARIABLES = /(?:^ *|[\S])(?:[\S]*)/
 
 
-export function replaceFlow(expr, name, value, position) {
+export function replaceFlowExpressions(expr, name, value, position) {
   switch (name) {
   case 'each':
     return each[position](expr, value)
   case 'if':
-    return conditional[position](expr, value)
+  case 'else if':
+  case 'elseif':
+    return conditional[position](expr, value, name)
   default:
     return expr
   }
@@ -43,9 +48,8 @@ export function normalizeMarkup(name, attr, ends) {
   return `<${name}${ends}>`
 }
 
-
 export function parse(html, offset) {
-  const lines = html.split('\n')
+  const lines = html.code.split('\n')
   const map = []
 
   lines.map((line, row) => {
@@ -54,19 +58,32 @@ export function parse(html, offset) {
       generated: { line: row + 1, column: 0 }
     })
 
-    line
-      .replace(TMPL_EXPR, expr => expr.substring(0, 1) === '{' ? '${' : expr)
+    return line
+      .replace(TMPL_EXPR, (_, openBrackets, expr) => {
+        if (expr.substring(0, 2) === '!') {
+          lines[row -1] = lines[row -1].trim()
+          line = line.trim()
+        } else {
+          lines[row -1] += ' '
+        }
+
+        return openBrackets.substring(0, 1) === '{' ? '${' : openBrackets
+      })
       .replace(START_FLOW_EXPR, (_, expr, name, value) => {
-        lines[row -1] = lines[row -1].trim()
-        lines[row -1] += '${'
-        return replaceFlow(expr, name, value, 'start')
+        // update the previous row
+        lines[row -1] = `${lines[row -1].trim()}$\{`
+        return replaceFlowExpressions(expr, name, value, 'start')
       })
       .replace(END_FLOW_EXPR, (_, expr, name, value) => {
-        lines[row +1] = lines[row -1].trim()
-        lines[row +1] = '}' + lines[row +1]
-        return replaceFlow(expr, name, value, 'end')
+        // update the next row
+        lines[row +1] = `}${lines[row +1].trim()}`
+        return replaceFlowExpressions(expr, name, value, 'end')
       })
       .replace(HTML_TAGS, (_, name, attr, ends) => normalizeMarkup(name, attr, ends))
   })
 
+  return {
+    code: lines.join('\n'),
+    map
+  }
 }

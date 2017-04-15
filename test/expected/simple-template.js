@@ -1,7 +1,7 @@
 riot.define('simple-template', {
-  render(r) {
-    r`
-      <p>${ this.message }</p>
+  render(h) {
+    return h`
+  <p>${ this.message }</p>
     `
   }
 })

@@ -46,7 +46,7 @@ export default {
 </script>
 
 <style>
-  :root {
+  :host {
     background: red;
   }
 </style>
@@ -64,7 +64,7 @@ riot.define('my-tag', {
   }
   get css() {
     return `
-      :root {
+      :host {
         background: red;
       }
     `

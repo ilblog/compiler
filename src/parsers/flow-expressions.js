@@ -8,18 +8,22 @@ export const each = {
     const target = values[5]
     const iterator = values[4]
 
-    return `${ target }.map(${ iterator ? `(${item}, ${iterator})` : `(${item})`} => { return (`
+    return `${ target }.map(this.${ iterator ? `(${item}, ${iterator})` : `(${item})`} => { return \``
   },
   end() {
-    return '))}'
+    return '`)}'
   }
 }
 
 export const conditional = {
-  start(str, value) {
-
+  start(str, value, name) {
+    if (['else if', 'elseif'].includes(name)) {
+      return `\` : this.${ value } ? \``
+    } else {
+      return `this.${ value } ? \``
+    }
   },
-  end(str, value) {
-
+  end() {
+    return '` : \'\''
   }
 }

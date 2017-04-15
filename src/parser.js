@@ -45,26 +45,11 @@ function fragment(source, regExp) {
 export function generate(name, head, exports, template, css) {
   return `
     ${ head }
-    riot.define(${ name }, {
-      ${ exports ? `
-          ${ exports }
-        ` : ''
-      }
-      ${
-        css ? `
-        get css() {
-          return \`${ css }\`
-        }
-        ` : ''
-      }
-      ${
-        template ? `
-        render(h) {
-          return\`${ template }\`
-        }
-        ` : ''
-      }
-    })
+riot.define('${ name }', {
+  ${ template ? `render(h) { \nreturn h\`\n${ template }\n\`\n  }` : ''}
+  ${ exports ? exports : '' }
+  ${ css ? `get css() { \nreturn \`\n${ css }\n\`\n  }` : ''}
+})
   `
 }
 
