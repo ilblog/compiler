@@ -73,5 +73,4 @@ pids
 
 # generated files
 /dist
-/lib/compiler.js
-/lib/safe-regex.js
+/src/grammar/index.*
