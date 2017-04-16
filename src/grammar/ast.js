@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 function ComponentNode(body, loc) {
   this.type = 'ComponentNode'
   this.body = body
@@ -6,7 +7,20 @@ function ComponentNode(body, loc) {
 
 function TemplateNode(attributes, body, loc) {
   this.type = 'TemplateNode'
-  this.name = name
+  this.attributes = attributes
+  this.body = body
+  this.loc = loc
+}
+
+function ScriptNode(attributes, body, loc) {
+  this.type = 'ScriptNode'
+  this.attributes = attributes
+  this.body = body
+  this.loc = loc
+}
+
+function StyleNode(attributes, body, loc) {
+  this.type = 'StyleNode'
   this.attributes = attributes
   this.body = body
   this.loc = loc
@@ -73,8 +87,8 @@ function IfStatementNode(cond, then, otherwise, loc) {
   this.loc = loc
 }
 
-function ForStatementNode(expr, body, options, loc) {
-  this.type = 'ForStatement'
+function EachStatementNode(expr, body, options, loc) {
+  this.type = 'EachStatement'
   this.expr = expr
   this.body = body
   this.options = options
@@ -205,34 +219,37 @@ function LiteralNode(value, loc) {
   this.loc = loc
 }
 
-const ast = {}
-ast.ComponentNode = ComponentNode
-ast.TemplateNode = TemplateNode
-ast.TextNode = TextNode
-ast.CommentNode = CommentNode
-ast.ElementNode = ElementNode
-ast.AttributeNode = AttributeNode
-ast.SpreadAttributeNode = SpreadAttributeNode
-ast.DirectiveNode = DirectiveNode
-ast.ExpressionStatementNode = ExpressionStatementNode
-ast.ImportStatementNode = ImportStatementNode
-ast.IfStatementNode = IfStatementNode
-ast.ForStatementNode = ForStatementNode
-ast.UnsafeStatementNode = UnsafeStatementNode
-ast.FilterExpressionNode = FilterExpressionNode
-ast.ThisExpressionNode = ThisExpressionNode
-ast.ArrayExpressionNode = ArrayExpressionNode
-ast.ObjectExpressionNode = ObjectExpressionNode
-ast.SequenceExpressionNode = SequenceExpressionNode
-ast.UnaryExpressionNode = UnaryExpressionNode
-ast.BinaryExpressionNode = BinaryExpressionNode
-ast.AssignmentExpressionNode = AssignmentExpressionNode
-ast.UpdateExpressionNode = UpdateExpressionNode
-ast.LogicalExpressionNode = LogicalExpressionNode
-ast.ConditionalExpressionNode = ConditionalExpressionNode
-ast.NewExpressionNode = NewExpressionNode
-ast.CallExpressionNode = CallExpressionNode
-ast.MemberExpressionNode = MemberExpressionNode
-ast.IdentifierNode = IdentifierNode
-ast.AccessorNode = AccessorNode
-ast.LiteralNode = LiteralNode
+const ast = {
+  ComponentNode,
+  TemplateNode,
+  ScriptNode,
+  StyleNode,
+  TextNode,
+  CommentNode,
+  ElementNode,
+  AttributeNode,
+  SpreadAttributeNode,
+  DirectiveNode,
+  ExpressionStatementNode,
+  ImportStatementNode,
+  IfStatementNode,
+  EachStatementNode,
+  UnsafeStatementNode,
+  FilterExpressionNode,
+  ThisExpressionNode,
+  ArrayExpressionNode,
+  ObjectExpressionNode,
+  SequenceExpressionNode,
+  UnaryExpressionNode,
+  BinaryExpressionNode,
+  AssignmentExpressionNode,
+  UpdateExpressionNode,
+  LogicalExpressionNode,
+  ConditionalExpressionNode,
+  NewExpressionNode,
+  CallExpressionNode,
+  MemberExpressionNode,
+  IdentifierNode,
+  AccessorNode,
+  LiteralNode,
+}

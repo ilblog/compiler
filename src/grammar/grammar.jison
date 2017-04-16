@@ -39,21 +39,28 @@ RegularExpressionBody {RegularExpressionFirstChar}{RegularExpressionChar}*
 RegularExpressionLiteral {RegularExpressionBody}\/{RegularExpressionFlags}
 
 Text [^<{]+
-AttributeText [^\"{]+
+AttributeText [^\"|\'{]+
 
 %x html
 %x attr
+%x js
+%x css
+%x script
+%x style
 %x regexp
 %x expr
 %x comment
 %options flex
 %%
 
-"<"                                this.begin("html"); return "<";
+"<script"                          this.begin("script"); return "<script"
+"<style"                           this.begin("style"); return "<style"
+
+"//"                               this.begin("comment"); return "//";
+"/*"                               this.begin("comment"); return "/*";
 "<!--"                             this.begin("comment"); return "<!--";
-"{"                                return "TEXT";
-"{="                               this.begin("expr"); return "{=";
-"{#"                               this.begin("expr"); return "{#";
+"<"                                this.begin("html"); return "<";
+"{"                                this.begin("expr"); return "{";
 {Text}                             return "TEXT";
 
 <html>">"                          this.popState(); return ">";
@@ -62,24 +69,22 @@ AttributeText [^\"{]+
 <html>"hr"                         return "HR";
 <html>"link"                       return "LINK";
 <html>"meta"                       return "META";
+<html>"template"                   return "TEMPLATE";
 <html>([\w-]+)                     return "IDENTIFIER";
 <html>\s+                          /* skip whitespaces */
 <html>":"                          return ":";
 <html>"="                          return "=";
-<html>"{#"                         this.begin("expr"); return "{#";
-<html>(\")                         this.begin("attr"); return "QUOTE";
+<html>"{"                          this.begin("expr"); return "{";
+<html>(\"|\')                      this.begin("attr"); return "QUOTE";
 <html>"/"                          return "/";
 
-<attr>"{"                          return "TEXT";
-<attr>"{="                         this.begin("expr"); return "{=";
 <attr>"{"                          this.begin("expr"); return "{";
 <attr>{AttributeText}              return "TEXT";
-<attr>(\")                         this.popState(); return "QUOTE";
+<attr>(\"|\')                      this.popState(); return "QUOTE";
 
 <regexp>{RegularExpressionLiteral} this.popState(); return "REGEXP_LITERAL";
 
-<expr>"}"                         this.popState(); return "}";
-<expr>"%}"                         this.popState(); return "%" + "}";
+<expr>"}"                          this.popState(); return "}";
 <expr>\s+                          /* skip whitespaces */
 <expr>"/*"(.|\r|\n)*?"*/"          /* skip comments */
 <expr>"//".*($|\r\n|\r|\n)         /* skip comments */
@@ -88,9 +93,7 @@ AttributeText [^\"{]+
 <expr>"from"                       return "FROM";
 <expr>"if"                         return "IF";
 <expr>"else"                       return "ELSE";
-<expr>"endif"                      return "ENDIF";
-<expr>"for"                        return "FOR";
-<expr>"endfor"                     return "ENDFOR";
+<expr>"each"                       return "EACH";
 <expr>"of"                         return "OF";
 <expr>"in"                         return "IN";
 <expr>"instanceof"                 return "INSTANCEOF";
@@ -98,12 +101,14 @@ AttributeText [^\"{]+
 <expr>"false"                      return "FALSE";
 <expr>"null"                       return "NULL";
 <expr>"this"                       return "THIS";
-<expr>"unsafe"                     return "UNSAFE";
+<expr>"="                          return "UNSAFE";
+<expr>"#"                          return "START_DIRECTIVE";
+<expr>"/"                          return "END_DIRECTIVE";
 <expr>{Identifier}                 return "IDENTIFIER";
 <expr>{DecimalLiteral}             return "NUMERIC_LITERAL";
 <expr>{HexIntegerLiteral}          return "NUMERIC_LITERAL";
 <expr>{OctalIntegerLiteral}        return "NUMERIC_LITERAL";
-<expr>"{"                          return "{";
+<expr>"\{"                         return "{";
 <expr>"}"                          return "}";
 <expr>"("                          return "(";
 <expr>")"                          return ")";
@@ -153,7 +158,18 @@ AttributeText [^\"{]+
 <expr>"~"                          return "~";
 <expr>"..."                        return "...";
 
+<script>">"                        this.begin('js'); return ">";
+<style>">"                         this.begin('css'); return ">";
+
+<js>([\s\S]+)(?:\<\/script\>)      this.popState(); return 'JS';
+<css>([\s\S]+)(?:\<\/style\>)      this.popState(); return 'CSS';
+
+<script>"</script>"                this.popState(); return "</script>";
+<style>"</style>"                  this.popState(); return "</style>";
+
 <comment>"-->"                     this.popState(); return "-->";
+<comment>"//"                      this.popState(); return "//";
+<comment>"*/"                      this.popState(); return "*/";
 <comment>((?!\-\-\>).)*            return "COMMENT";
 
 <<EOF>>                            return "EOF";
@@ -172,6 +188,20 @@ Component
         }
     ;
 
+Fragments
+    : "<" TEMPLATE AttributeList ">" ElementList "<" "/" TEMPLATE ">"
+        {
+            $$ = new TemplateNode($3, $5, createSourceLocation(@1, @9));
+        }
+    | "<" "script" AttributeList ">" JS "<" "/" "script" ">"
+        {
+            $$ = new ScriptNode($3, $5, createSourceLocation(@1, @9));
+        }
+    | "<" "style" AttributeList ">" CSS "<" "/" "style" ">"
+        {
+            $$ = new StyleNode($3, $5, createSourceLocation(@1, @9));
+        }
+    ;
 
 ElementList
     : Element
@@ -192,9 +222,13 @@ ElementList
 Element
     : TEXT
         {
-          $$ = new TextNode($1, createSourceLocation(@1, @1));
+            $$ = new TextNode($1, createSourceLocation(@1, @1));
         }
     | Statement
+        {
+            $$ = $1;
+        }
+    | Fragments
         {
             $$ = $1;
         }
@@ -213,18 +247,6 @@ Element
     | "<" IDENTIFIER AttributeList "/" ">"
         {
             $$ = new ElementNode($2, $3, [], createSourceLocation(@1, @5));
-        }
-    | "<" TemplateTag AttributeList ">" ElementList  "<" "/" IDENTIFIER ">"
-        {
-            $$ = new TemplateNode($2, $3, $5, createSourceLocation(@1, @9));
-        }
-    | "<" ScriptTag AttributeList ">" ElementList  "<" "/" IDENTIFIER ">"
-        {
-            $$ = new ScriptNode($2, $3, $5, createSourceLocation(@1, @9));
-        }
-    | "<" StyleTag AttributeList ">" ElementList  "<" "/" IDENTIFIER ">"
-        {
-            $$ = new StyleNode($2, $3, $5, createSourceLocation(@1, @9));
         }
     | "<" IDENTIFIER AttributeList ">" "<" "/" IDENTIFIER ">"
         {
@@ -259,29 +281,18 @@ EmptyTag
     | META
     ;
 
-TemplateTag
-    : TEMPLATE
-    ;
-
-ScriptTag
-    : SCRIPT
-    ;
-
-StyleTag
-    : STYLE
-    ;
 
 Statement
     : ExpressionStatement
     | ImportStatement
     | IfStatement
-    | ForStatement
+    | EachStatement
     | UnsafeStatement
     ;
 
 
 ExpressionStatement
-    : "{{" Expression "}}"
+    : "{" Expression "}"
         {
             $$ = new ExpressionStatementNode($2, createSourceLocation(@1, @3));
         }
@@ -289,7 +300,7 @@ ExpressionStatement
 
 
 ImportStatement
-    : "{%" IMPORT IdentifierName FROM StringLiteral "%}"
+    : "{" START_DIRECTIVE IMPORT IdentifierName FROM StringLiteral "}"
        {
             $$ = new ImportStatementNode($3, $5, createSourceLocation(@1, @4));
        }
@@ -297,35 +308,31 @@ ImportStatement
 
 
 IfStatement
-    :  "{%" IF Expression "%}" ElementList "{%" ENDIF "%}"
+    :  "{" START_DIRECTIVE IF Expression "}" ElementList "{" END_DIRECTIVE IF "}"
         {
-            $$ = new IfStatementNode($3, $5, null, createSourceLocation(@1, @8));
+            $$ = new IfStatementNode($4, $6, null, createSourceLocation(@1, @10));
         }
-    |  "{%" IF Expression "%}" ElementList "{%" ELSE "%}" ElementList "{%" ENDIF "%}"
+    |  "{" START_DIRECTIVE IF Expression "}" ElementList "{" ELSE "}" ElementList "{" END_DIRECTIVE IF "}"
         {
-            $$ = new IfStatementNode($3, $5, $9, createSourceLocation(@1, @12));
+            $$ = new IfStatementNode($4, $6, $10, createSourceLocation(@1, @14));
         }
     ;
 
 
-ForStatement
-    :  "{%" FOR Expression "%}" ElementList "{%" ENDFOR "%}"
+EachStatement
+    :  "{" START_DIRECTIVE EACH IDENTIFIER "IN" Expression "}" ElementList "{" END_DIRECTIVE EACH "}"
         {
-            $$ = new ForStatementNode($3, $5, null, createSourceLocation(@1, @8));
+            $$ = new EachStatementNode($6, $8, {value: $4}, createSourceLocation(@1, @12));
         }
-    |  "{%" FOR IDENTIFIER "OF" Expression "%}" ElementList "{%" ENDFOR "%}"
+    |  "{" START_DIRECTIVE EACH IDENTIFIER "," IDENTIFIER "IN" Expression "}" ElementList "{" END_DIRECTIVE EACH "}"
         {
-            $$ = new ForStatementNode($5, $7, {value: $3}, createSourceLocation(@1, @10));
-        }
-    |  "{%" FOR IDENTIFIER "," IDENTIFIER "OF" Expression "%}" ElementList "{%" ENDFOR "%}"
-        {
-            $$ = new ForStatementNode($7, $9, {key: $3, value: $5}, createSourceLocation(@1, @11));
+            $$ = new EachStatementNode($8, $10, {key: $4, value: $6}, createSourceLocation(@1, @13));
         }
     ;
 
 
 UnsafeStatement
-    :  "{%" UNSAFE Expression "%}"
+    :  "{" UNSAFE Expression "}"
         {
             $$ = new UnsafeStatementNode($3, createSourceLocation(@1, @4));
         }
@@ -372,7 +379,7 @@ PlainAttribute
 
 
 SpreadAttribute
-    : "{{" "..." IdentifierName "}}"
+    : "{" "..." IdentifierName "}"
         {
           $$ = new SpreadAttributeNode($3, createSourceLocation(@1, @4));
         }
