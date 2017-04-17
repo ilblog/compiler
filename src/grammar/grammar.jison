@@ -99,6 +99,9 @@ Anything (.*)?
 <expr>\s+                          /* skip whitespaces */
 <expr>{StringLiteral}              return "STRING_LITERAL";
 
+<expr>"if"                         return "IF";
+<expr>"each"                       return "EACH";
+
 <expr>"break"                      return "BREAK";
 <expr>"case"                       return "CASE";
 <expr>"catch"                      return "CATCH";
@@ -111,7 +114,6 @@ Anything (.*)?
 <expr>"finally"                    return "FINALLY";
 <expr>"for"                        return "FOR";
 <expr>"function"                   return "FUNCTION";
-<expr>"if"                         return "IF";
 <expr>"in"                         return "IN";
 <expr>"instanceof"                 return "INSTANCEOF";
 <expr>"new"                        return "NEW";
