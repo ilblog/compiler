@@ -42,8 +42,9 @@ function parseNumericLiteral(literal) {
 /* Begin Parser Customization Methods */
 const originalParseMethod = parser.parse
 
-parser.parse = function (source, code) {
+parser.parse = function (source, code, options) {
   parser.source = source
+  parser.options = options || {}
   return originalParseMethod.call(this, code)
 }
 /* End Parser Customization Methods */

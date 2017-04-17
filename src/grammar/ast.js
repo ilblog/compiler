@@ -32,12 +32,6 @@ function TextNode(text, loc) {
   this.loc = loc
 }
 
-function CommentNode(comment, loc) {
-  this.type = 'Comment'
-  this.comment = comment
-  this.loc = loc
-}
-
 function ElementNode(name, attributes, body, loc) {
   this.type = 'Element'
   this.name = name
@@ -66,37 +60,37 @@ function DirectiveNode(name, body, loc) {
   this.loc = loc
 }
 
-function ExpressionStatementNode(expression, loc) {
-  this.type = 'ExpressionStatement'
+function ExpressionDirectiveNode(expression, loc) {
+  this.type = 'ExpressionDirective'
   this.expression = expression
   this.loc = loc
 }
 
-function ImportStatementNode(identifier, path, loc) {
-  this.type = 'ImportStatement'
+function ImportDirectiveNode(identifier, path, loc) {
+  this.type = 'ImportDirective'
   this.identifier = identifier
   this.path = path
   this.loc = loc
 }
 
-function IfStatementNode(cond, then, otherwise, loc) {
-  this.type = 'IfStatement'
+function IfDirectiveNode(cond, then, otherwise, loc) {
+  this.type = 'IfDirective'
   this.cond = cond
   this.then = then
   this.otherwise = otherwise
   this.loc = loc
 }
 
-function EachStatementNode(expr, body, options, loc) {
-  this.type = 'EachStatement'
+function EachDirectiveNode(expr, body, options, loc) {
+  this.type = 'EachDirective'
   this.expr = expr
   this.body = body
   this.options = options
   this.loc = loc
 }
 
-function UnsafeStatementNode(html, loc) {
-  this.type = 'UnsafeStatement'
+function UnsafeDirectiveNode(html, loc) {
+  this.type = 'UnsafeDirective'
   this.html = html
   this.loc = loc
 }
@@ -217,39 +211,4 @@ function LiteralNode(value, loc) {
   this.type = 'Literal'
   this.value = value
   this.loc = loc
-}
-
-const ast = {
-  ComponentNode,
-  TemplateNode,
-  ScriptNode,
-  StyleNode,
-  TextNode,
-  CommentNode,
-  ElementNode,
-  AttributeNode,
-  SpreadAttributeNode,
-  DirectiveNode,
-  ExpressionStatementNode,
-  ImportStatementNode,
-  IfStatementNode,
-  EachStatementNode,
-  UnsafeStatementNode,
-  FilterExpressionNode,
-  ThisExpressionNode,
-  ArrayExpressionNode,
-  ObjectExpressionNode,
-  SequenceExpressionNode,
-  UnaryExpressionNode,
-  BinaryExpressionNode,
-  AssignmentExpressionNode,
-  UpdateExpressionNode,
-  LogicalExpressionNode,
-  ConditionalExpressionNode,
-  NewExpressionNode,
-  CallExpressionNode,
-  MemberExpressionNode,
-  IdentifierNode,
-  AccessorNode,
-  LiteralNode,
 }
