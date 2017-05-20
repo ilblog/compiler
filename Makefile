@@ -17,7 +17,7 @@ build: clean
 	@ cat $(SRC)grammar/helpers.js >> $(SRC)grammar/index.jison
 	@ cat $(SRC)grammar/ast.js >> $(SRC)grammar/index.jison
 	@ $(JISON) $(SRC)grammar/index.jison -m js -o $(SRC)grammar/index.js
-	@ echo "export default index;" >> $(SRC)grammar/index.js
+	# @ echo "export default index;" >> $(SRC)grammar/index.js
 	@ $(ROLLUP) $(SRC)index.js -c -f umd > $(DIST)index.js
 	@ $(ROLLUP) $(SRC)index.js -c -f es > $(DIST)index.next.js
 

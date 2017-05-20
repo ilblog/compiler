@@ -1,44 +1,5 @@
+/* global createSourceLocation */
 /* eslint-disable no-unused-vars */
-function ComponentNode(body, loc) {
-  this.type = 'ComponentNode'
-  this.body = body
-  this.loc = loc
-}
-
-function TemplateNode(attributes, body, loc) {
-  this.type = 'TemplateNode'
-  this.attributes = attributes
-  this.body = body
-  this.loc = loc
-}
-
-function ScriptNode(attributes, body, loc) {
-  this.type = 'ScriptNode'
-  this.attributes = attributes
-  this.body = body
-  this.loc = loc
-}
-
-function StyleNode(attributes, body, loc) {
-  this.type = 'StyleNode'
-  this.attributes = attributes
-  this.body = body
-  this.loc = loc
-}
-
-function TextNode(text, loc) {
-  this.type = 'Text'
-  this.text = text
-  this.loc = loc
-}
-
-function ElementNode(name, attributes, body, loc) {
-  this.type = 'Element'
-  this.name = name
-  this.attributes = attributes
-  this.body = body
-  this.loc = loc
-}
 
 function AttributeNode(name, body, loc) {
   this.type = 'Attribute'
@@ -60,24 +21,11 @@ function DirectiveNode(name, body, loc) {
   this.loc = loc
 }
 
-function ExpressionDirectiveNode(expression, loc) {
-  this.type = 'ExpressionDirective'
-  this.expression = expression
-  this.loc = loc
-}
 
 function ImportDirectiveNode(identifier, path, loc) {
   this.type = 'ImportDirective'
   this.identifier = identifier
   this.path = path
-  this.loc = loc
-}
-
-function IfDirectiveNode(cond, then, otherwise, loc) {
-  this.type = 'IfDirective'
-  this.cond = cond
-  this.then = then
-  this.otherwise = otherwise
   this.loc = loc
 }
 
@@ -211,4 +159,15 @@ function LiteralNode(value, loc) {
   this.type = 'Literal'
   this.value = value
   this.loc = loc
+}
+
+
+/**
+ * Nodes creation function
+ */
+
+function createNode(props) {
+  return Object.assign(props, {
+    loc: createSourceLocation(props.loc[0], props.loc[1])
+  })
 }

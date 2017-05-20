@@ -50,7 +50,7 @@ Anything (.*)?
 %options flex
 %%
 
-[\r\n\t]+                          /* Skip unused whitespace */;
+[\r\n\t ]+                         /* Skip unused whitespace */;
 "/*"{Anything}"*/"                 /* skip comments */
 "<--"{Anything}"-->"               /* skip comments */
 "//".*($|\r\n|\r|\n)               /* skip comments */
@@ -101,7 +101,8 @@ Anything (.*)?
 
 <expr>"if"                         return "IF";
 <expr>"each"                       return "EACH";
-
+<expr>"else"                       return "ELSE";
+<expr>"else if"                    return "ELSE_IF";
 <expr>"break"                      return "BREAK";
 <expr>"case"                       return "CASE";
 <expr>"catch"                      return "CATCH";
@@ -110,7 +111,6 @@ Anything (.*)?
 <expr>"default"                    return "DEFAULT";
 <expr>"delete"                     return "DELETE";
 <expr>"do"                         return "DO";
-<expr>"else"                       return "ELSE";
 <expr>"finally"                    return "FINALLY";
 <expr>"for"                        return "FOR";
 <expr>"function"                   return "FUNCTION";
@@ -212,7 +212,7 @@ Anything (.*)?
 Component
     : Fragments EOF
         {
-            $$ = new ComponentNode($1, createSourceLocation(@1, @2));
+            $$ = createNode({ type: 'ComponentNode', value: $1, loc: [@1, @2] });
             return $$;
         }
     ;
@@ -220,15 +220,15 @@ Component
 Fragments
     : "<" SCRIPT AttributeList ">" JS "<" "/" SCRIPT ">"
         {
-            $$ = new ScriptNode($3, $5, createSourceLocation(@1, @9));
+            $$ = createNode({ type: 'ScriptNode', attributes: $3, value: $5, loc: [@1, @9] });
         }
     | "<" STYLE AttributeList ">" CSS "<" "/" STYLE ">"
         {
-            $$ = new StyleNode($3, $5, createSourceLocation(@1, @9));
+            $$ = createNode({ type: 'StyleNode', attributes: $3, value: $5, loc: [@1, @9] });
         }
     | "<" TEMPLATE AttributeList ">" ElementList "<" "/" TEMPLATE ">"
         {
-            $$ = new TemplateNode($3, $5, createSourceLocation(@1, @9));
+            $$ = createNode({ type: 'TemplateNode', attributes: $3, value: $5, loc: [@1, @9] });
         }
     ;
 
@@ -250,7 +250,7 @@ ElementList
 Element
     : TEXT
         {
-            $$ = new TextNode($1, createSourceLocation(@1, @1));
+            $$ = createNode({ type: 'TextNode', value: $1, loc: [@1, @1] });
         }
     | Directive
         {
@@ -258,20 +258,17 @@ Element
         }
     | "<" EmptyTag AttributeList ">"
         {
-            $$ = new ElementNode($2, $3, [], createSourceLocation(@1, @4));
+            $$ = createNode({ type: 'ElementNode', name: $2, attributes: $3, loc: [@1, @4] });
         }
     | "<" EmptyTag AttributeList "/" ">"
-        {
-            $$ = new ElementNode($2, $3, [], createSourceLocation(@1, @5));
-        }
     | "<" IDENTIFIER AttributeList "/" ">"
         {
-            $$ = new ElementNode($2, $3, [], createSourceLocation(@1, @5));
+            $$ = createNode({ type: 'ElementNode', name: $2, attributes: $3, loc: [@1, @5] });
         }
     | "<" IDENTIFIER AttributeList ">" "<" "/" IDENTIFIER ">"
         {
             if ($2 == $7) {
-                $$ = new ElementNode($2, $3, [], createSourceLocation(@1, @8));
+                $$ = createNode({ type: 'ElementNode', name: $2, attributes: $3, loc: [@1, @8] });
             } else {
                 throw new SyntaxError(
                     "Syntax error on line " + (yylineno + 1) + ":\n" +
@@ -282,7 +279,7 @@ Element
     | "<" IDENTIFIER AttributeList ">" ElementList  "<" "/" IDENTIFIER ">"
         {
             if ($2 == $8) {
-                $$ = new ElementNode($2, $3, $5, createSourceLocation(@1, @9));
+                $$ = createNode({ type: 'ElementNode', value: $5, name: $2, attributes: $3, loc: [@1, @9] });
             } else {
                 throw new SyntaxError(
                     "Syntax error on line " + (yylineno + 1) + ":\n" +
@@ -312,30 +309,62 @@ EmptyTag
 
 
 Directive
-    : ExpressionDirective
-    | IfDirective
+    : ExpressionStatement
+    | IfDirectives
     | EachDirective
     | UnsafeDirective
     ;
 
 
-ExpressionDirective
+ExpressionStatement
     : "{" Expression "}"
         {
-            $$ = new ExpressionDirectiveNode($2, createSourceLocation(@1, @3));
+            $$ = createNode({ type: 'ExpressionStatementNode', expression: $2, loc: [@1, @3]});
+        }
+    ;
+
+IfDirective
+    : "{" START_DIRECTIVE IF Expression "}" ElementList "{" END_DIRECTIVE IF "}"
+        {
+            $$ = createNode({ type: 'IfDirectiveNode', expression: $4, value: $6, loc: [@1, @10]});
+        }
+    | "{" START_DIRECTIVE IF Expression "}" ElementList ElseDirective
+        {
+            $$ = createNode({ type: 'IfDirectiveNode', expression: $4, value: $6, loc: [@1, @6]});
+        }
+    ;
+
+ElseDirective
+    : "{" ELSE "}" ElementList "{" END_DIRECTIVE IF "}"
+        {
+            $$ = createNode({ type: 'ElseDirectiveNode', value: $4, loc: [@1, @8]});
+        }
+    ;
+
+ElseIfDirective
+    : "{" ELSE_IF Expression "}" ElementList
+        {
+            $$ = createNode({ type: 'ElseIfDirectiveNode', expression: $3, value: $5, loc: [@1, @5]});
+        }
+    | ElseIfDirective ElseDirective
+        {
+            $$ = $1.concat($2);
+        }
+    | ElseIfDirective ElseIfDirective
+        {
+            $$ = $1.concat($2);
         }
     ;
 
 
-
-IfDirective
-    :  "{" START_DIRECTIVE IF Expression "}" ElementList "{" END_DIRECTIVE IF "}"
+IfDirectives
+    : IfDirective
         {
-            $$ = new IfDirectiveNode($4, $6, null, createSourceLocation(@1, @10));
+            $$ = [$1];
         }
-    |  "{" START_DIRECTIVE IF Expression "}" ElementList "{" ELSE "}" ElementList "{" END_DIRECTIVE IF "}"
+    | ElseIfDirective
         {
-            $$ = new IfDirectiveNode($4, $6, $10, createSourceLocation(@1, @14));
+            $$ = [$1];
         }
     ;
 
@@ -388,7 +417,7 @@ PlainAttribute
         {
             $$ = new AttributeNode($1, null, createSourceLocation(@1, @1));
         }
-    | IDENTIFIER "=" ExpressionDirective
+    | IDENTIFIER "=" ExpressionStatement
         {
             $$ = new AttributeNode($1, [$3], createSourceLocation(@1, @3));
         }
@@ -412,7 +441,7 @@ Directive
         {
             $$ = new DirectiveNode($2, null, createSourceLocation(@1, @2));
         }
-    | ":" IDENTIFIER "=" ExpressionDirective
+    | ":" IDENTIFIER "=" ExpressionStatement
         {
             $$ = new DirectiveNode($2, [$4], createSourceLocation(@1, @4));
         }
@@ -429,7 +458,7 @@ AttributeValue
         {
             $$ = [new LiteralNode(JSON.stringify($1), createSourceLocation(@1, @1))];
         }
-    | ExpressionDirective
+    | ExpressionStatement
         {
             $$ = [$1];
         }
@@ -437,7 +466,7 @@ AttributeValue
         {
             $$ = $1.concat(new LiteralNode(JSON.stringify($2), createSourceLocation(@1, @1)));
         }
-    | AttributeValue ExpressionDirective
+    | AttributeValue ExpressionStatement
         {
             $$ = $1.concat($2);
         }
@@ -868,6 +897,12 @@ Expression
         }
     ;
 
+RegularExpressionLiteral
+    : RegularExpressionLiteralBegin "REGEXP_LITERAL"
+        {
+            $$ = new LiteralNode(parseRegularExpressionLiteral($1 + $2), createSourceLocation(@1, @2));
+        }
+;
 
 Literal
     : NullLiteral
@@ -937,6 +972,7 @@ ReservedWord
     | "DELETE"
     | "DO"
     | "ELSE"
+    | "ELSE_IF"
     | "FINALLY"
     | "FOR"
     | "FUNCTION"
