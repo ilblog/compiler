@@ -588,6 +588,9 @@ function scopedCSS (tag, css) {
  * @throws  Will throw "CSS parser not found" if the CSS parser cannot be loaded.
  * @throws  Using the _scoped_ option with no tagName will throw an error.
  * @see {@link module:compiler.compileCSS|compileCSS}
+ *
+ * MODIFIED by Ivo (disabling scopedCSS)
+ *
  */
 function _compileCSS (css, tag, type, opts) {
   opts = opts || {}
@@ -602,7 +605,10 @@ function _compileCSS (css, tag, type, opts) {
 
   // remove comments, compact and trim whitespace
   css = css.replace(brackets.R_MLCOMMS, '').replace(/\s+/g, ' ').trim()
-  if (tag) css = scopedCSS(tag, css)
+
+  // Ivo's modification
+  // css remains the same
+  if (tag) scopedCSS(tag, css)
 
   return css
 }
